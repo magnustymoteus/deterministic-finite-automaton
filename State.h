@@ -11,9 +11,11 @@
 class State {
 private:
     std::string naam;
-    bool is_start_state, is_end_state;
+    bool is_start_state=false, is_end_state=false;
+
 
 public:
+    State(const std::string &naam) : naam(naam) {}
     std::string get_naam() const {return naam;}
     bool get_is_start_state() const {return is_start_state;}
     bool get_is_end_state() const {return is_end_state;}

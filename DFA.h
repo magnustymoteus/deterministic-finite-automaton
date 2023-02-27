@@ -9,28 +9,39 @@
 #include <set>
 #include <map>
 
-class State; // forward declaration of State
+#include "State.h"
 
 class DFA {
 private:
-    std::set<State*> states;
-    std::set<State*> final_states;
+    const std::set<State*> states;
+    const std::set<State*> end_states;
     State* start_state;
-    std::set<std::string> alphabet;
-    std::map<std::pair<State*, std::set<std::string>>, State*> transition_map;
-public:
-    std::set<State*> get_states() const {return states;}
-    std::set<std::string> get_alphabet() const {return alphabet;}
-    std::set<State*> get_final_states() const {return final_states;}
-    State* get_start_state() const {return start_state;}
-    std::map<std::pair<State*, std::set<std::string>>, State*> get_transition_map() const {return transition_map;}
+    const std::set<char> alphabet;
 
-    void set_states(std::set<State*> &new_states) {states=new_states;}
-    void set_alphabet(std::set<std::string> &new_alphabet) {alphabet=new_alphabet;}
-    void set_final_states(std::set<State*> &new_final_states) {final_states=new_final_states;}
-    void set_start_state(State* &new_start_state) {start_state=new_start_state;}
-    void set_transition_map(std::map<std::pair<State*, std::set<std::string>>, State*> &new_transition_map)
-    {transition_map=new_transition_map;}
+    std::map<std::pair<State*, char>, State*> transition_map;
+
+    bool state_is_in_states(State* &state) const;
+    bool char_is_in_alphabet(char &character) const;
+    bool is_transition_valid(std::pair<std::pair<State*, char>, State*> &transition) const;
+public:
+    // constructors
+    DFA(const std::set<State*> &states, const std::set<State*> &end_states, State* &start_state,
+        const std::set<char> &alphabet);
+    DFA() = default;
+
+    // destructor
+    ~DFA();
+
+    // getter headers
+    std::set<State*> get_states() const;
+    std::set<char> get_alphabet() const;
+    std::set<State*> get_end_states() const;
+    const State* get_start_state() const;
+    std::map<std::pair<State*, char>, State*> get_transition_map() const;
+
+    // setter headers
+    bool set_transition_map(std::map<std::pair<State*, char>, State*> &new_transition_map);
+
 };
 
 

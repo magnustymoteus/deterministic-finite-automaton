@@ -1,6 +1,10 @@
 #include <iostream>
+#include "DFA.h"
+
+using namespace std;
 
 int main() {
-    std::cout << "Hello, World!" << std::endl;
+    DFA dfa;
+    cout << boolalpha << dfa.accepts("0010110100") << endl << dfa.accepts("0001") << endl;
     return 0;
 }
