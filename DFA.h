@@ -11,23 +11,27 @@
 
 #include "State.h"
 
+typedef std::map<State*, std::map<char, State*>> TransitionMap;
+typedef std::pair<State*, std::map<char, State*>> Transitions;
+typedef std::pair<State*, std::pair<char, State*>> Transition;
+
 class DFA {
 private:
-    const std::set<State*> states;
-    const std::set<State*> end_states;
+    std::set<State*> states;
+    std::set<State *> end_states;
     State* start_state;
-    const std::set<char> alphabet;
+    std::set<char> alphabet;
+    TransitionMap transition_map;
 
-    std::map<std::pair<State*, char>, State*> transition_map;
+    void init(std::set<State*> &states, std::set<State*> &end_states, State* &start_state,
+              std::set<char> &alphabet, TransitionMap &transition_map);
+    void validate() const;
 
-    bool state_is_in_states(State* &state) const;
-    bool char_is_in_alphabet(char &character) const;
-    bool is_transition_valid(std::pair<std::pair<State*, char>, State*> &transition) const;
 public:
     // constructors
-    DFA(const std::set<State*> &states, const std::set<State*> &end_states, State* &start_state,
-        const std::set<char> &alphabet);
-    DFA() = default;
+    DFA(std::set<State*> &states, std::set<State*> &end_states, State* &start_state,
+        std::set<char> &alphabet, TransitionMap &transition_map);
+    DFA();
 
     // destructor
     ~DFA();
@@ -37,11 +41,10 @@ public:
     std::set<char> get_alphabet() const;
     std::set<State*> get_end_states() const;
     const State* get_start_state() const;
-    std::map<std::pair<State*, char>, State*> get_transition_map() const;
+    TransitionMap get_transition_map() const;
 
-    // setter headers
-    bool set_transition_map(std::map<std::pair<State*, char>, State*> &new_transition_map);
-
+    // other
+    bool accepts(const std::string &str) const;
 };
 
 
