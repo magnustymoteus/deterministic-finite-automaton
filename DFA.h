@@ -8,6 +8,7 @@
 #include <iostream>
 #include <set>
 #include <map>
+#include <fstream>
 
 #include "State.h"
 
@@ -23,15 +24,11 @@ private:
     std::set<char> alphabet;
     TransitionMap transition_map;
 
-    void init(std::set<State*> &states, std::set<State*> &end_states, State* &start_state,
-              std::set<char> &alphabet, TransitionMap &transition_map);
     void validate() const;
 
 public:
     // constructors
-    DFA(std::set<State*> &states, std::set<State*> &end_states, State* &start_state,
-        std::set<char> &alphabet, TransitionMap &transition_map);
-    DFA();
+    DFA(const std::string &relativeFile);
 
     // destructor
     ~DFA();
@@ -40,8 +37,9 @@ public:
     std::set<State*> get_states() const;
     std::set<char> get_alphabet() const;
     std::set<State*> get_end_states() const;
-    const State* get_start_state() const;
+    State* get_start_state() const;
     TransitionMap get_transition_map() const;
+    State* get_state_by_name(const std::string &name) const;
 
     // other
     bool accepts(const std::string &str) const;

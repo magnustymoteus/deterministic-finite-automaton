@@ -3,6 +3,8 @@
 //
 
 #include "DFA.h"
+#include "json.hpp"
+#include <fstream>
 #include <cassert>
 
 bool is_subset_of(const std::set<State*> &subset, const std::set<State*> &superset) {
@@ -13,12 +15,6 @@ bool is_subset_of(const std::set<State*> &subset, const std::set<State*> &supers
 }
 bool is_element_of(State* const &element, const std::set<State *> &state_set) {
     return state_set.find(element) != state_set.end();
-}
-void DFA::init(std::set<State *> &states_arg, std::set<State *> &end_states_arg, State *&start_state_arg,
-               std::set<char> &alphabet_arg, TransitionMap &transition_map_arg){
-    states = states_arg, end_states = end_states_arg, start_state = start_state_arg, alphabet=alphabet_arg;
-    transition_map = transition_map_arg;
-    validate();
 }
 
 void DFA::validate() const {
@@ -42,40 +38,41 @@ void DFA::validate() const {
     assert(transition_map_copy.empty() && "Expected each state in transition map to be legal");
 }
 
-DFA::DFA(std::set<State*> &states, std::set<State*> &end_states, State* &start_state,
-         std::set<char> &alphabet, TransitionMap &transition_map) : states(states), end_states(end_states),
-         start_state(start_state), alphabet(alphabet), transition_map(transition_map) {
-
-    /*  Preconditions:
-     * For each unique combination of state and input there exists precisely one output state
-     * All symbols re in the alphabet
-     * The end states set is a subset of states set
-     * The start state is an element of states set
-     */
-    init(states, end_states, start_state, alphabet, transition_map);
-}
-DFA::DFA() {
-    std::set<char> alphabet_arg = {'0', '1'};
-
-    auto s0 = new State("s0");
-    auto s1 = new State("s1");
-    auto s2 = new State("s2");
-
-    std::set<State*> states_arg = {s0,s1,s2};
-    std::set<State*> end_states_arg = {s0};
-
-    Transitions transitions_s0 = {s0, {{'0', s0}, {'1', s1}}};
-    Transitions transitions_s1 = {s1, {{'0', s0}, {'1', s2}}};
-    Transitions transitions_s2 = {s2, {{'0', s1}, {'1', s2}}};
-
-    TransitionMap transition_map_arg = {transitions_s0, transitions_s1, transitions_s2};
-
-    init(states_arg, end_states_arg, s0, alphabet_arg, transition_map_arg);
-}
 DFA::~DFA() {
     for(State* current_state : states) {
         delete current_state;
     }
+}
+
+DFA::DFA(const std::string &relativeFile) {
+    std::ifstream input(relativeFile);
+    nlohmann::json data = nlohmann::json::parse(input);
+    for(auto &elem : data["alphabet"]) {
+        alphabet.insert(elem.get<std::string>()[0]);
+    }
+    for(auto &elem : data["states"]) {
+        auto new_state = new State(elem["name"].get<std::string>());
+        if (elem["starting"].get<bool>()) start_state=new_state;
+        if (elem["accepting"].get<bool>()) end_states.insert(new_state);
+        states.insert(new_state);
+    }
+    for(auto &elem : data["transitions"]) {
+        auto from_state = get_state_by_name(elem["from"].get<std::string>());
+        auto to_state = get_state_by_name(elem["to"].get<std::string>());
+        char curr_input = elem["input"].get<std::string>()[0];
+
+        assert(from_state != nullptr);
+        assert(to_state != nullptr);
+
+        if(transition_map.find(from_state) == transition_map.end()) {
+            std::map<char, State*> new_map = {{curr_input, to_state}};
+            transition_map.insert({from_state, new_map});
+        }
+        else {
+            transition_map.at(from_state).insert({curr_input, to_state});
+        }
+    }
+    validate();
 }
 
 // getters implementation
@@ -88,11 +85,17 @@ std::set<char> DFA::get_alphabet() const {
 std::set<State*> DFA::get_end_states() const {
     return end_states;
 }
-const State* DFA::get_start_state() const {
+State* DFA::get_start_state() const {
     return start_state;
 }
 TransitionMap DFA::get_transition_map() const {
     return transition_map;
+}
+State* DFA::get_state_by_name(const std::string &name) const {
+    for(auto &current_state : states) {
+        if(current_state->get_naam() == name) return current_state;
+    }
+    return nullptr;
 }
 
 // other
