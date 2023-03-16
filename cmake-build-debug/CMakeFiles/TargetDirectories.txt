@@ -1,3 +1,0 @@
-C:/Users/gruzi/CLionProjects/TA_opdracht1/cmake-build-debug/CMakeFiles/TA_opdracht1.dir
-C:/Users/gruzi/CLionProjects/TA_opdracht1/cmake-build-debug/CMakeFiles/edit_cache.dir
-C:/Users/gruzi/CLionProjects/TA_opdracht1/cmake-build-debug/CMakeFiles/rebuild_cache.dir

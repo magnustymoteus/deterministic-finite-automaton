@@ -4,6 +4,7 @@
 
 #include "DFA.h"
 #include "json.hpp"
+#include <iomanip>
 #include <fstream>
 #include <cassert>
 
@@ -52,8 +53,14 @@ DFA::DFA(const std::string &relativeFile) {
     }
     for(auto &elem : data["states"]) {
         auto new_state = new State(elem["name"].get<std::string>());
-        if (elem["starting"].get<bool>()) start_state=new_state;
-        if (elem["accepting"].get<bool>()) end_states.insert(new_state);
+        if (elem["starting"].get<bool>()) {
+            new_state->set_isStarting(true);
+            start_state=new_state;
+        }
+        if (elem["accepting"].get<bool>()) {
+            new_state->set_isAccepting(true);
+            end_states.insert(new_state);
+        }
         states.insert(new_state);
     }
     for(auto &elem : data["transitions"]) {
@@ -105,4 +112,26 @@ bool DFA::accepts(const std::string &str) const {
         current_state = transition_map.at(current_state).at(current_char);
     }
     return is_element_of(current_state, end_states);
+}
+void DFA::print() const {
+    nlohmann::json j;
+    j["type"] = "DFA";
+    j["alphabet"] = {};
+    j["states"] = {};
+    j["transitions"] = {};
+    for(const char currentChar: alphabet) {
+        j["alphabet"].push_back(std::string(1,currentChar));
+    }
+    for(State* currentState : states) {
+        j["states"].push_back({{"name", currentState->get_naam()}, {"starting", currentState->get_isStarting()},
+                               {"accepting", currentState->get_isAccepting()}});
+    }
+    for(Transitions currentTransitions : transition_map) {
+        for(auto currentTransition : currentTransitions.second) {
+            j["transitions"].push_back({{"from", currentTransitions.first->get_naam()},
+                                        {"to", currentTransition.second->get_naam()},
+                                        {"input", std::string(1, currentTransition.first)}});
+        }
+    }
+    std::cout << std::setw(4) << j << std::endl;
 }

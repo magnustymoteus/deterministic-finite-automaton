@@ -23,7 +23,6 @@ private:
     State* start_state;
     std::set<char> alphabet;
     TransitionMap transition_map;
-
     void validate() const;
 
 public:
@@ -43,6 +42,7 @@ public:
 
     // other
     bool accepts(const std::string &str) const;
+    void print() const;
 };
 
 

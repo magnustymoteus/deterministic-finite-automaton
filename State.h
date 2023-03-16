@@ -11,12 +11,17 @@
 class State {
 private:
     std::string naam;
-
+    bool isAccepting;
+    bool isStarting;
 
 public:
     State(const std::string &naam) : naam(naam) {}
     std::string get_naam() const {return naam;}
+    bool get_isAccepting() const {return isAccepting;}
+    bool get_isStarting() const {return isStarting;}
 
+    void set_isStarting(const bool &new_isStarting) {isStarting=new_isStarting;}
+    void set_isAccepting(const bool &new_isAccepting) {isAccepting=new_isAccepting;}
     void set_naam(const std::string &new_naam) {naam=new_naam;}
 };
 
