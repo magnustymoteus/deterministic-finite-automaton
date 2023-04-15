@@ -16,6 +16,8 @@ private:
 
 public:
     State(const std::string &naam) : naam(naam) {}
+    State(const std::string &naam,  const bool &isStarting, const bool &isAccepting) :
+    naam(naam), isAccepting(isAccepting), isStarting(isStarting) {}
     std::string get_naam() const {return naam;}
     bool get_isAccepting() const {return isAccepting;}
     bool get_isStarting() const {return isStarting;}

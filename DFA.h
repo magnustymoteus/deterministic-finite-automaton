@@ -28,6 +28,7 @@ private:
 public:
     // constructors
     DFA(const std::string &relativeFile);
+    DFA(const DFA &dfa1, const DFA &dfa2, const bool &intersection);
 
     // destructor
     ~DFA();

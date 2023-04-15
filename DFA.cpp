@@ -44,6 +44,31 @@ DFA::~DFA() {
         delete current_state;
     }
 }
+std::string get_product_name(const std::string &name1, const std::string &name2) {
+    return name1+" , "+name2;
+}
+State* make_product_state(const State* const state1, const State* const state2, const bool &intersection) {
+    const bool is_starting = state1->get_isStarting() && state2->get_isStarting();
+    const bool is_accepting = (intersection) ?
+            state1->get_isAccepting() && state2->get_isAccepting() :
+            state1->get_isAccepting() || state2->get_isAccepting();
+    auto result = new State(get_product_name(state1->get_naam(), state2->get_naam()),
+                 is_starting, is_accepting);
+    return result;
+}
+DFA::DFA(const DFA &dfa1, const DFA &dfa2, const bool &intersection) {
+    if(dfa1.get_alphabet() != dfa2.get_alphabet())
+        throw std::invalid_argument("The DFA's don't have the same alphabet!");
+    const State* dfa1_currentState = dfa1.get_start_state();
+    const State* dfa2_currentState = dfa2.get_start_state();
+    std::set<State*> dfa1_reachableStates;
+    std::set<State*> dfa2_reachableStates;
+    /*TO DO while(true) {
+        State* product_state = make_product_state(dfa1_currentState, dfa2_currentState, intersection);
+            if(product_state->get_isStarting()) start_state = product_state;
+            if(product_state->get_isAccepting()) end_states.insert(product_state);
+    }*/
+}
 
 DFA::DFA(const std::string &relativeFile) {
     std::ifstream input(relativeFile);
