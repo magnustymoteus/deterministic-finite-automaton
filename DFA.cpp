@@ -59,15 +59,22 @@ State* make_product_state(const State* const state1, const State* const state2, 
 DFA::DFA(const DFA &dfa1, const DFA &dfa2, const bool &intersection) {
     if(dfa1.get_alphabet() != dfa2.get_alphabet())
         throw std::invalid_argument("The DFA's don't have the same alphabet!");
+    alphabet = dfa1.alphabet;
+
     const State* dfa1_currentState = dfa1.get_start_state();
     const State* dfa2_currentState = dfa2.get_start_state();
-    std::set<State*> dfa1_reachableStates;
-    std::set<State*> dfa2_reachableStates;
-    /*TO DO while(true) {
-        State* product_state = make_product_state(dfa1_currentState, dfa2_currentState, intersection);
-            if(product_state->get_isStarting()) start_state = product_state;
-            if(product_state->get_isAccepting()) end_states.insert(product_state);
-    }*/
+    const TransitionMap & dfa1_transition_map = dfa1.get_transition_map();
+    const TransitionMap & dfa2_transition_map = dfa2.get_transition_map();
+
+    State *product_start_state = make_product_state(dfa1_currentState, dfa2_currentState, intersection);
+    State *curr_product_state = product_start_state;
+    for(const char currentSymbol : alphabet) {
+        while(states.find(curr_product_state) == states.end()) {
+            if (curr_product_state->get_isStarting()) start_state = curr_product_state;
+            if (curr_product_state->get_isAccepting()) end_states.insert(curr_product_state);
+            // TO DO
+        }
+    }
 }
 
 DFA::DFA(const std::string &relativeFile) {
