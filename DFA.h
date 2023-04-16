@@ -24,7 +24,11 @@ private:
     std::set<char> alphabet;
     TransitionMap transition_map;
     void validate() const;
-
+    State* find_or_make_product(const State* const state1, const State* const state2, const bool &intersection);
+    void make_product_transition_map(State* const &dfa1_state, State* const &dfa2_state,
+                                     const TransitionMap &dfa1_tm, const TransitionMap &dfa2_tm,
+                                     const bool &intersection);
+    State* make_product_state(const State* const state1, const State* const state2, const bool &intersection);
 public:
     // constructors
     DFA(const std::string &relativeFile);

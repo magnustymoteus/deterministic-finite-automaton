@@ -45,36 +45,57 @@ DFA::~DFA() {
     }
 }
 std::string get_product_name(const std::string &name1, const std::string &name2) {
-    return name1+" , "+name2;
+    return "("+name1+","+name2+")";
 }
-State* make_product_state(const State* const state1, const State* const state2, const bool &intersection) {
+State* DFA::make_product_state(const State* const state1, const State* const state2, const bool &intersection) {
     const bool is_starting = state1->get_isStarting() && state2->get_isStarting();
     const bool is_accepting = (intersection) ?
             state1->get_isAccepting() && state2->get_isAccepting() :
             state1->get_isAccepting() || state2->get_isAccepting();
     auto result = new State(get_product_name(state1->get_naam(), state2->get_naam()),
                  is_starting, is_accepting);
+    states.insert(result);
+    if (result->get_isStarting()) start_state = result;
+    if (result->get_isAccepting()) end_states.insert(result);
     return result;
+}
+State* DFA::find_or_make_product(const State *const state1, const State *const state2, const bool &intersection) {
+    State* search_result = get_state_by_name(get_product_name(state1->get_naam(), state2->get_naam()));
+    State* product_state = (search_result != nullptr) ? search_result : make_product_state(state1, state2, intersection);
+    return product_state;
+}
+void DFA::make_product_transition_map(State *const &dfa1_state, State *const &dfa2_state,
+                                      const TransitionMap &dfa1_tm, const TransitionMap &dfa2_tm,
+                                      const bool &intersection) {
+    State* product_state = find_or_make_product(dfa1_state, dfa2_state, intersection);
+    if(transition_map.find(product_state) == transition_map.end()) {
+        transition_map.insert({product_state, {}});
+        for(const char currentSymbol : alphabet) {
+            State* dfa1_next_state = dfa1_tm.at(dfa1_state).at(currentSymbol);
+            State* dfa2_next_state = dfa2_tm.at(dfa2_state).at(currentSymbol);
+            State* next_product_state = find_or_make_product(dfa1_next_state, dfa2_next_state, intersection);
+
+            transition_map.at(product_state).insert({currentSymbol, next_product_state});
+            make_product_transition_map(dfa1_next_state, dfa2_next_state,
+                                        dfa1_tm, dfa2_tm, intersection);
+        }
+    }
 }
 DFA::DFA(const DFA &dfa1, const DFA &dfa2, const bool &intersection) {
     if(dfa1.get_alphabet() != dfa2.get_alphabet())
         throw std::invalid_argument("The DFA's don't have the same alphabet!");
     alphabet = dfa1.alphabet;
 
-    const State* dfa1_currentState = dfa1.get_start_state();
-    const State* dfa2_currentState = dfa2.get_start_state();
+    State* const dfa1_currentState = dfa1.get_start_state();
+    State* const dfa2_currentState = dfa2.get_start_state();
     const TransitionMap & dfa1_transition_map = dfa1.get_transition_map();
     const TransitionMap & dfa2_transition_map = dfa2.get_transition_map();
 
-    State *product_start_state = make_product_state(dfa1_currentState, dfa2_currentState, intersection);
-    State *curr_product_state = product_start_state;
-    for(const char currentSymbol : alphabet) {
-        while(states.find(curr_product_state) == states.end()) {
-            if (curr_product_state->get_isStarting()) start_state = curr_product_state;
-            if (curr_product_state->get_isAccepting()) end_states.insert(curr_product_state);
-            // TO DO
-        }
-    }
+    start_state = make_product_state(dfa1_currentState, dfa2_currentState, intersection);
+
+    make_product_transition_map(dfa1_currentState, dfa2_currentState,
+                                dfa1_transition_map, dfa2_transition_map, intersection);
+    validate();
 }
 
 DFA::DFA(const std::string &relativeFile) {

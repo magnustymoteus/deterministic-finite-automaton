@@ -11,8 +11,8 @@
 class State {
 private:
     std::string naam;
-    bool isAccepting;
-    bool isStarting;
+    bool isAccepting=false;
+    bool isStarting=false;
 
 public:
     State(const std::string &naam) : naam(naam) {}
