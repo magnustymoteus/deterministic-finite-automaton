@@ -3,9 +3,11 @@
 using namespace std;
 
 int main() {
-    DFA dfa1("input-product-and1.json");
-    DFA dfa2("input-product-and2.json");
-    DFA product(dfa1,dfa2,false); // true betekent doorsnede, false betekent unie
-    product.print();
+    DFA dfa("input-tfa1.json");
+    dfa.get_table();
+    //DFA mindfa = dfa.minimize();
+    dfa.printTable();
+    //mindfa.print();
+    //cout << boolalpha << (dfa == mindfa) << endl;    // zijn ze equivalent? Zou hier zeker moeten. Dit wordt getest in de volgende vraag, maar hiermee kan je al eens proberen
     return 0;
 }

@@ -3,4 +3,4 @@ project(TA_opdracht1)
 
 set(CMAKE_CXX_STANDARD 17)
 
-add_executable(TA_opdracht1 main.cpp DFA.cpp DFA.h State.cpp State.h json.hpp)
+add_executable(TA_opdracht1 main.cpp DFA.cpp DFA.h State.cpp State.h json.hpp DFAUtils.cpp DFAUtils.h)

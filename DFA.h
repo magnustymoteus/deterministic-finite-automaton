@@ -16,6 +16,9 @@ typedef std::map<State*, std::map<char, State*>> TransitionMap;
 typedef std::pair<State*, std::map<char, State*>> Transitions;
 typedef std::pair<State*, std::pair<char, State*>> Transition;
 
+typedef std::map<std::string, bool> FillingColumn;
+typedef std::map<std::string, FillingColumn> FillingTable;
+
 class DFA {
 private:
     std::set<State*> states;
@@ -29,6 +32,7 @@ private:
                                      const TransitionMap &dfa1_tm, const TransitionMap &dfa2_tm,
                                      const bool &intersection);
     State* make_product_state(const State* const state1, const State* const state2, const bool &intersection);
+    void fill_table(FillingTable &table) const;
 public:
     // constructors
     DFA(const std::string &relativeFile);
@@ -44,10 +48,13 @@ public:
     State* get_start_state() const;
     TransitionMap get_transition_map() const;
     State* get_state_by_name(const std::string &name) const;
+    FillingTable get_table() const;
 
     // other
-    bool accepts(const std::string &str) const;
+    bool accepts(const std::string&str) const;
     void print() const;
+    void printTable() const;
+    DFA minimize() const;
 };
 
 

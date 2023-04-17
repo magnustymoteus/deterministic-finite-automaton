@@ -17,7 +17,82 @@ bool is_subset_of(const std::set<State*> &subset, const std::set<State*> &supers
 bool is_element_of(State* const &element, const std::set<State *> &state_set) {
     return state_set.find(element) != state_set.end();
 }
-
+bool get_table_element(const FillingTable &table, const std::string &strA, const std::string &strB) {
+    if(table.find(strA) == table.end()) {
+        assert(table.find(strB) != table.end());
+        return table.find(strB)->second.find(strA)->second;
+    }
+    assert(table.find(strA) != table.end());
+    return table.find(strA)->second.find(strB)->second;
+}
+void set_table_element(FillingTable &table, const std::string &strA, const std::string &strB) {
+    if(table.find(strA) == table.end()) {
+        table.find(strB)->second.find(strA)->second = true;
+    }
+    else if(table.find(strA) != table.end()){
+        table.find(strA)->second.find(strB)->second = true;
+    }
+}
+void DFA::fill_table(FillingTable &table) const {
+    bool new_distinguishable;
+    do {
+        new_distinguishable = false;
+        for(const auto &currentRow : table) {
+            for(const auto &currentCol : currentRow.second) {
+                if(!currentCol.second) {
+                    for(const char current_symbol : alphabet) {
+                        const std::string strA = transition_map.at(get_state_by_name(currentRow.first)).
+                                at(current_symbol)->get_naam();
+                        const std::string strB = transition_map.at(get_state_by_name(currentCol.first)).
+                                at(current_symbol)->get_naam();
+                        if(strA != strB) {
+                            const bool distinguishable = get_table_element(table, strA, strB);
+                            if (distinguishable) {
+                                new_distinguishable = true;
+                                set_table_element(table, currentRow.first, currentCol.first);
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    } while(new_distinguishable);
+}
+FillingTable DFA::get_table() const {
+    FillingTable table;
+    std::vector<std::string> state_names;
+    for(const State* const &current_state : states) {
+        state_names.push_back(current_state->get_naam());
+    }
+    std::sort(state_names.begin(), state_names.end(), std::less<>());
+   for(auto str_iter = next(state_names.begin()); str_iter != state_names.end(); str_iter++) {
+        const std::string &current_naam = *str_iter;
+        State* current_state = get_state_by_name(current_naam);
+        assert(current_state != nullptr);
+        for(auto iter = state_names.begin(); *iter != current_naam; iter++) {
+            State* iter_state = get_state_by_name(*iter);
+            assert(iter_state != nullptr);
+            const bool distinguishable = current_state->get_isAccepting() ^ iter_state->get_isAccepting();
+            table[current_naam][*iter] = distinguishable;
+        }
+    }
+    fill_table(table);
+    return table;
+}
+void DFA::printTable() const {
+    const FillingTable &table = get_table();
+    for(const auto &currentRow : table) {
+        std::cout << currentRow.first;
+        for(const auto &currentCol : currentRow.second) {
+            std::cout << "\t" << ((currentCol.second) ? 'X' : '-');
+        }
+        std::cout << "\n";
+    }
+    for(const auto &currentCol : prev(table.end())->second) {
+        std::cout << "\t" << currentCol.first;
+    }
+}
 void DFA::validate() const {
     assert(is_subset_of(end_states, states));
     assert(is_element_of(start_state, states));
