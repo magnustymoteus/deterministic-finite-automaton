@@ -33,6 +33,50 @@ void set_table_element(FillingTable &table, const std::string &strA, const std::
         table.find(strA)->second.find(strB)->second = true;
     }
 }
+std::set<std::set<std::string>> get_equivalence_classes(const FillingTable &table) {
+    std::vector<std::vector<std::string>> equivalence_classes;
+    std::set<std::set<std::string>> equivalence_classes_set;
+    for(auto &currentRow : table) {
+        for(auto &currentCol : currentRow.second) {
+            if(!currentCol.second) {
+                bool found = false;
+                for(auto& equivalence_class : equivalence_classes) {
+                    auto search_result = std::find(equivalence_class.begin(),
+                                                   equivalence_class.end(), currentCol.first);
+                    if(search_result != equivalence_class.end()) {
+                        found = true;
+                        equivalence_class.push_back(currentRow.first);
+                    }
+                    else {
+                        search_result = std::find(equivalence_class.begin(), equivalence_class.end(), currentRow.first);
+                        if(search_result != equivalence_class.end()) {
+                            found = true;
+                            equivalence_class.push_back(currentCol.first);
+                        }
+                    }
+                }
+                if(!found) {
+                    equivalence_classes.push_back({currentRow.first, currentCol.first});
+                }
+            }
+        }
+    }
+    for(auto vect : equivalence_classes){
+        std::set<std::string> equivalence_class_set(vect.begin(), vect.end());
+        equivalence_classes_set.insert(equivalence_class_set);
+    }
+    return equivalence_classes_set;
+}
+DFA DFA::minimize() const {
+    const FillingTable & table = get_table();
+    std::set<std::set<std::string>> equivalence_classes = get_equivalence_classes(table);
+    TransitionMap transition_map_copy = get_transition_map();
+    DFA minimized_dfa = DFA(*this); //temp
+    return minimized_dfa;
+}
+bool operator==(const DFA &dfa1, const DFA &dfa2) {
+    return false; // temp
+}
 void DFA::fill_table(FillingTable &table) const {
     bool new_distinguishable;
     do {
@@ -62,7 +106,7 @@ void DFA::fill_table(FillingTable &table) const {
 FillingTable DFA::get_table() const {
     FillingTable table;
     std::vector<std::string> state_names;
-    for(const State* const &current_state : states) {
+    for(const State* const &current_state : get_states()) {
         state_names.push_back(current_state->get_naam());
     }
     std::sort(state_names.begin(), state_names.end(), std::less<>());
@@ -94,14 +138,14 @@ void DFA::printTable() const {
     }
 }
 void DFA::validate() const {
-    assert(is_subset_of(end_states, states));
-    assert(is_element_of(start_state, states));
+    assert(is_subset_of(get_end_states(), get_states()));
+    assert(is_element_of(get_start_state(), get_states()));
 
-    TransitionMap transition_map_copy = transition_map;
+    TransitionMap transition_map_copy = get_transition_map();
 
-    for(State* current_state : states) {
+    for(State* current_state : get_states()) {
         auto found_state = transition_map_copy.find(current_state);
-        for(char character : alphabet) {
+        for(char character : get_alphabet()) {
             assert(found_state != transition_map_copy.end() && "Expected state to be in transition_map");
             auto found_output_state = found_state->second.find(character);
             assert(found_output_state != found_state->second.end() &&
@@ -115,7 +159,7 @@ void DFA::validate() const {
 }
 
 DFA::~DFA() {
-    for(State* current_state : states) {
+    for(State* current_state : get_states()) {
         delete current_state;
     }
 }
@@ -155,6 +199,15 @@ void DFA::make_product_transition_map(State *const &dfa1_state, State *const &df
                                         dfa1_tm, dfa2_tm, intersection);
         }
     }
+}
+DFA::DFA(const std::set<State *> new_states, const std::set<State *> new_end_states, State* new_start_state,
+         const std::set<char> new_alphabet, const TransitionMap new_transition_map) {
+    states = new_states;
+    end_states = new_end_states;
+    start_state = new_start_state;
+    alphabet = new_alphabet;
+    transition_map = new_transition_map;
+    validate();
 }
 DFA::DFA(const DFA &dfa1, const DFA &dfa2, const bool &intersection) {
     if(dfa1.get_alphabet() != dfa2.get_alphabet())
@@ -210,22 +263,6 @@ DFA::DFA(const std::string &relativeFile) {
     validate();
 }
 
-// getters implementation
-std::set<State*> DFA::get_states() const {
-    return states;
-}
-std::set<char> DFA::get_alphabet() const {
-    return alphabet;
-}
-std::set<State*> DFA::get_end_states() const {
-    return end_states;
-}
-State* DFA::get_start_state() const {
-    return start_state;
-}
-TransitionMap DFA::get_transition_map() const {
-    return transition_map;
-}
 State* DFA::get_state_by_name(const std::string &name) const {
     for(auto &current_state : states) {
         if(current_state->get_naam() == name) return current_state;

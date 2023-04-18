@@ -37,25 +37,31 @@ public:
     // constructors
     DFA(const std::string &relativeFile);
     DFA(const DFA &dfa1, const DFA &dfa2, const bool &intersection);
+    DFA(const std::set<State*> new_states, const std::set<State*> new_end_states, State* new_start_state,
+        const std::set<char> new_alphabet, const TransitionMap new_transition_map);
 
     // destructor
     ~DFA();
 
     // getter headers
-    std::set<State*> get_states() const;
-    std::set<char> get_alphabet() const;
-    std::set<State*> get_end_states() const;
-    State* get_start_state() const;
-    TransitionMap get_transition_map() const;
+    std::set<State*> get_states() const {return states;}
+    std::set<char> get_alphabet() const {return alphabet;}
+    std::set<State*> get_end_states() const {return end_states;}
+    State* get_start_state() const {return start_state;}
+    TransitionMap get_transition_map() const {return transition_map;}
     State* get_state_by_name(const std::string &name) const;
-    FillingTable get_table() const;
+
+
 
     // other
     bool accepts(const std::string&str) const;
     void print() const;
     void printTable() const;
+    FillingTable get_table() const;
     DFA minimize() const;
 };
+
+bool operator==(const DFA &dfa1, const DFA &dfa2);
 
 
 #endif //TA_OPDRACHT1_DFA_H
