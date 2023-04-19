@@ -18,12 +18,18 @@ bool is_element_of(State* const &element, const std::set<State *> &state_set) {
     return state_set.find(element) != state_set.end();
 }
 bool get_table_element(const FillingTable &table, const std::string &strA, const std::string &strB) {
-    if(table.find(strA) == table.end()) {
-        assert(table.find(strB) != table.end());
-        return table.find(strB)->second.find(strA)->second;
+    auto find_result_1 = table.find(strA);
+    if(find_result_1 != table.end()) {
+        auto find_result_1b = find_result_1->second.find(strB);
+        if(find_result_1b != find_result_1->second.end()) return find_result_1b->second;
     }
-    assert(table.find(strA) != table.end());
-    return table.find(strA)->second.find(strB)->second;
+    auto find_result_2 = table.find(strB);
+    if(find_result_2 != table.end()) {
+        auto find_result_2b = find_result_2->second.find(strA);
+        assert(find_result_2b != find_result_2->second.end());
+        return find_result_2b->second;
+    }
+    return false;
 }
 void set_table_element(FillingTable &table, const std::string &strA, const std::string &strB) {
     if(table.find(strA) == table.end()) {
@@ -32,6 +38,20 @@ void set_table_element(FillingTable &table, const std::string &strA, const std::
     else if(table.find(strA) != table.end()){
         table.find(strA)->second.find(strB)->second = true;
     }
+}
+std::set<std::string> get_corresponding_equivalence_class(const std::string &name,
+                                                          const std::set<std::set<std::string>> &equivalence_classes) {
+    for(auto &equivalence_class : equivalence_classes) {
+        if(equivalence_class.find(name) != equivalence_class.end()) return equivalence_class;
+    }
+    return {name};
+}
+std::string equivalence_class_to_string(const std::set<std::string> &equivalence_class) {
+    std::string result = "{";
+    for(const std::string &name : equivalence_class) {
+        result += name + ", ";
+    }
+    return result.substr(0, result.size()-2)+"}";
 }
 std::set<std::set<std::string>> get_equivalence_classes(const FillingTable &table) {
     std::vector<std::vector<std::string>> equivalence_classes;
@@ -71,11 +91,68 @@ DFA DFA::minimize() const {
     const FillingTable & table = get_table();
     std::set<std::set<std::string>> equivalence_classes = get_equivalence_classes(table);
     TransitionMap transition_map_copy = get_transition_map();
-    DFA minimized_dfa = DFA(*this); //temp
+    DFA minimized_dfa = DFA(*this, equivalence_classes);
     return minimized_dfa;
 }
+void print_table(const FillingTable &table) {
+    for(const auto &currentRow : table) {
+        std::cout << currentRow.first;
+        for(const auto &currentCol : currentRow.second) {
+            std::cout << "\t" << ((currentCol.second) ? 'X' : '-');
+        }
+        std::cout << "\n";
+    }
+    for(const auto &currentCol : prev(table.end())->second) {
+        std::cout << "\t" << currentCol.first;
+    }
+    std::cout << "\n";
+}
 bool operator==(const DFA &dfa1, const DFA &dfa2) {
-    return false; // temp
+    FillingTable table = dfa1.get_table(dfa2);
+    print_table(table);
+    return !get_table_element(table, dfa1.get_start_state()->get_naam(), dfa2.get_start_state()->get_naam());
+}
+State* DFA::get_output(State* const state, const char &symbol) const {
+    return transition_map.at(state).at(symbol);
+}
+void DFA::fill_table(FillingTable &table, const DFA &dfa) const {
+    bool new_distinguishable;
+    do {
+        new_distinguishable = false;
+        for(const auto &currentRow : table) {
+            for(const auto &currentCol : currentRow.second) {
+                if(!currentCol.second) {
+                    for(const char current_symbol : alphabet) {
+                        bool row = get_state_by_name(currentRow.first) != nullptr;
+                        bool col = get_state_by_name(currentCol.first) != nullptr;
+                        State* rowState = (row)
+                                ? get_state_by_name(currentRow.first) :
+                                dfa.get_state_by_name(currentRow.first);
+                        State* colState = (col)
+                                          ? get_state_by_name(currentCol.first) :
+                                          dfa.get_state_by_name(currentCol.first);
+
+                        const std::string strA = (row) ?
+                                get_output(rowState, current_symbol)->get_naam()
+                                : dfa.get_output(rowState, current_symbol)->get_naam();
+
+                        const std::string strB = (col) ?
+                                get_output(colState, current_symbol)->get_naam()
+                                : dfa.get_output(colState, current_symbol)->get_naam();
+
+                        if(strA != strB) {
+                            const bool distinguishable = get_table_element(table, strA, strB);
+                            if (distinguishable) {
+                                new_distinguishable = true;
+                                set_table_element(table, currentRow.first, currentCol.first);
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    } while(new_distinguishable);
 }
 void DFA::fill_table(FillingTable &table) const {
     bool new_distinguishable;
@@ -103,13 +180,43 @@ void DFA::fill_table(FillingTable &table) const {
         }
     } while(new_distinguishable);
 }
+FillingTable DFA::get_table(const DFA &dfa) const {
+    FillingTable table;
+    std::vector<std::string> state_names;
+    for(const State* const &current_state : get_states()) {
+        state_names.push_back(current_state->get_naam());
+    }
+    for(const State* const &current_state : dfa.get_states()) {
+        state_names.push_back(current_state->get_naam());
+    }
+    std::sort(state_names.begin(), state_names.end(), std::less<std::string>());
+
+    for(auto str_iter = next(state_names.begin()); str_iter != state_names.end(); str_iter++) {
+        const std::string &current_naam = *str_iter;
+        State* current_state = (get_state_by_name(current_naam) != nullptr )
+                ? get_state_by_name(current_naam) :
+                dfa.get_state_by_name(current_naam);
+
+        assert(current_state != nullptr);
+        for(auto iter = state_names.begin(); *iter != current_naam; iter++) {
+            State* iter_state = (get_state_by_name(*iter) != nullptr )
+                    ? get_state_by_name(*iter) :
+                    dfa.get_state_by_name(*iter);
+            assert(iter_state != nullptr);
+            const bool distinguishable = current_state->get_isAccepting() ^ iter_state->get_isAccepting();
+            table[current_naam][*iter] = distinguishable;
+        }
+    }
+    fill_table(table, dfa);
+    return table;
+}
 FillingTable DFA::get_table() const {
     FillingTable table;
     std::vector<std::string> state_names;
     for(const State* const &current_state : get_states()) {
         state_names.push_back(current_state->get_naam());
     }
-    std::sort(state_names.begin(), state_names.end(), std::less<>());
+    std::sort(state_names.begin(), state_names.end(), std::less<std::string>());
    for(auto str_iter = next(state_names.begin()); str_iter != state_names.end(); str_iter++) {
         const std::string &current_naam = *str_iter;
         State* current_state = get_state_by_name(current_naam);
@@ -125,17 +232,7 @@ FillingTable DFA::get_table() const {
     return table;
 }
 void DFA::printTable() const {
-    const FillingTable &table = get_table();
-    for(const auto &currentRow : table) {
-        std::cout << currentRow.first;
-        for(const auto &currentCol : currentRow.second) {
-            std::cout << "\t" << ((currentCol.second) ? 'X' : '-');
-        }
-        std::cout << "\n";
-    }
-    for(const auto &currentCol : prev(table.end())->second) {
-        std::cout << "\t" << currentCol.first;
-    }
+    print_table(get_table());
 }
 void DFA::validate() const {
     assert(is_subset_of(get_end_states(), get_states()));
@@ -200,13 +297,82 @@ void DFA::make_product_transition_map(State *const &dfa1_state, State *const &df
         }
     }
 }
-DFA::DFA(const std::set<State *> new_states, const std::set<State *> new_end_states, State* new_start_state,
-         const std::set<char> new_alphabet, const TransitionMap new_transition_map) {
-    states = new_states;
-    end_states = new_end_states;
-    start_state = new_start_state;
+DFA::DFA(const DFA &dfa) {
+    std::set<State*> new_states = dfa.get_states();
+    std::set<State*> new_end_states = dfa.get_end_states();
+    const State* const new_start_state = dfa.get_start_state();
+    std::set<char> new_alphabet = dfa.get_alphabet();
+    TransitionMap new_transition_map = dfa.get_transition_map();
+
     alphabet = new_alphabet;
-    transition_map = new_transition_map;
+
+    for(const State* current_state : new_states) {
+        auto new_state = new State(current_state->get_naam(), current_state->get_isStarting(),
+                                     current_state->get_isAccepting());
+        states.insert(new_state);
+        if(current_state->get_isAccepting()) end_states.insert(new_state);
+        if(current_state->get_isStarting()) start_state = new_state;
+    }
+    for(const auto &transitions : new_transition_map) {
+        std::map<char, State*> new_transitions_map;
+        for(const auto &transition : transitions.second) {
+            new_transitions_map.insert(
+                    {transition.first, get_state_by_name(transition.second->get_naam())});
+        }
+        Transitions new_transitions =
+                {get_state_by_name(transitions.first->get_naam()), new_transitions_map};
+        transition_map.insert(new_transitions);
+    }
+    validate();
+}
+DFA::DFA(const DFA &dfa, const std::set<std::set<std::string>> &equivalence_classes) {
+    std::set<State*> new_states = dfa.get_states();
+    std::set<State*> new_end_states = dfa.get_end_states();
+    State* new_start_state = dfa.get_start_state();
+    std::set<char> new_alphabet = dfa.get_alphabet();
+    TransitionMap new_transition_map = dfa.get_transition_map();
+
+    alphabet = new_alphabet;
+
+    for(const State* current_state : new_states) {
+        std::set<std::string> equivalence_class =
+                get_corresponding_equivalence_class(current_state->get_naam(), equivalence_classes);
+        const std::string equivalence_class_str = equivalence_class_to_string(equivalence_class);
+        State* search_result = get_state_by_name(equivalence_class_str);
+
+        if(search_result == nullptr) {
+            auto new_state = new State(equivalence_class_str, false,
+                                       current_state->get_isAccepting());
+            if(current_state->get_isAccepting()) end_states.insert(new_state);
+            states.insert(new_state);
+        }
+    }
+    start_state = get_state_by_name(equivalence_class_to_string(
+            get_corresponding_equivalence_class(new_start_state->get_naam(), equivalence_classes)));
+    start_state->set_isStarting(true);
+
+    for(const auto &transitions : new_transition_map) {
+        std::map<char, State*> new_transitions_map;
+        for(const auto &transition : transitions.second) {
+            std::set<std::string> equivalence_class =
+                    get_corresponding_equivalence_class(transition.second->get_naam(), equivalence_classes);
+            const std::string state_name =
+                    equivalence_class_to_string(equivalence_class);
+
+            new_transitions_map.insert(
+                    {transition.first, get_state_by_name(state_name)});
+
+        }
+        std::set<std::string> equivalence_class =
+                get_corresponding_equivalence_class(transitions.first->get_naam(), equivalence_classes);
+        const std::string state_name =
+                equivalence_class_to_string(equivalence_class);
+
+        Transitions new_transitions =
+                {get_state_by_name(state_name), new_transitions_map};
+
+        transition_map.insert(new_transitions);
+    }
     validate();
 }
 DFA::DFA(const DFA &dfa1, const DFA &dfa2, const bool &intersection) {
@@ -274,7 +440,7 @@ State* DFA::get_state_by_name(const std::string &name) const {
 bool DFA::accepts(const std::string &str) const {
     State* current_state = start_state;
     for(char current_char : str) {
-        current_state = transition_map.at(current_state).at(current_char);
+        current_state = get_output(current_state, current_char);
     }
     return is_element_of(current_state, end_states);
 }

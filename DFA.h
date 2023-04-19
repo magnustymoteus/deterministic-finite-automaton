@@ -14,7 +14,7 @@
 
 typedef std::map<State*, std::map<char, State*>> TransitionMap;
 typedef std::pair<State*, std::map<char, State*>> Transitions;
-typedef std::pair<State*, std::pair<char, State*>> Transition;
+typedef std::pair<char, State*> Transition;
 
 typedef std::map<std::string, bool> FillingColumn;
 typedef std::map<std::string, FillingColumn> FillingTable;
@@ -33,12 +33,13 @@ private:
                                      const bool &intersection);
     State* make_product_state(const State* const state1, const State* const state2, const bool &intersection);
     void fill_table(FillingTable &table) const;
+    void fill_table(FillingTable &table, const DFA &dfa) const;
 public:
     // constructors
     DFA(const std::string &relativeFile);
     DFA(const DFA &dfa1, const DFA &dfa2, const bool &intersection);
-    DFA(const std::set<State*> new_states, const std::set<State*> new_end_states, State* new_start_state,
-        const std::set<char> new_alphabet, const TransitionMap new_transition_map);
+    DFA(const DFA &dfa);
+    DFA(const DFA &dfa, const std::set<std::set<std::string>> &equivalence_classes);
 
     // destructor
     ~DFA();
@@ -50,6 +51,7 @@ public:
     State* get_start_state() const {return start_state;}
     TransitionMap get_transition_map() const {return transition_map;}
     State* get_state_by_name(const std::string &name) const;
+    State* get_output(State* const state, const char &symbol) const;
 
 
 
@@ -58,6 +60,7 @@ public:
     void print() const;
     void printTable() const;
     FillingTable get_table() const;
+    FillingTable get_table(const DFA &dfa) const;
     DFA minimize() const;
 };
 
